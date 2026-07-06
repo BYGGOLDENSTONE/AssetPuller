@@ -61,10 +61,17 @@ This is the **Content folder of the library project** on disk, e.g.
 
 ## Usage
 
-1. Click the **Asset Puller** toolbar button (or *Window → Asset Puller*).
+1. Click the **Asset Puller** toolbar button (or *Window → Asset Puller*):
+
+   ![Asset Puller toolbar button](Docs/toolbar-button.png)
+
 2. Type an asset name — the list filters as you type. Separate several names
-   with commas. Select one or more results (Ctrl/Shift click, or *Select All*).
-3. Click **Import Selected**. Review the confirmation dialog:
+   with commas. Select one or more results (Ctrl/Shift click, or *Select All*),
+   then click **Import Selected**:
+
+   ![Asset Puller window](Docs/asset-puller-window.png)
+
+3. Review the confirmation dialog:
    - green — new assets that will be copied (with total size)
    - grey — already in your project, skipped
    - red — referenced but missing in the source library
@@ -76,6 +83,30 @@ This is the **Content folder of the library project** on disk, e.g.
 
 Added new packs to the library? Press **Rescan** — the index is rebuilt from
 disk in seconds.
+
+## Example workflow: Synty Pass + Synty Dex
+
+This plugin pairs naturally with a [Synty Pass](https://syntystore.com/)
+subscription: install the POLYGON packs you want into a single "library"
+project once, and point Asset Puller's *Source Content Folder* at that
+project's Content directory. Your game projects stay lean — you pull
+individual assets by name instead of migrating whole packs.
+
+To find the right asset name without opening the library project, browse
+Synty's official asset index at **https://dex.syntystore.com/**. Search
+visually across every pack:
+
+![Synty Dex search](Docs/synty-dex-search.png)
+
+Click an asset and copy its exact name (e.g. `SM_Wep_Axe_03`) with the copy
+button next to the name:
+
+![Synty Dex copy asset name](Docs/synty-dex-copy-name.png)
+
+Paste that name into Asset Puller's search box, import, and the asset arrives
+with all of its materials and textures. (Ignore Dex's *Unity Path* field —
+in Unreal the asset name alone is enough, Asset Puller locates it in your
+library by name.)
 
 ## Command line
 
