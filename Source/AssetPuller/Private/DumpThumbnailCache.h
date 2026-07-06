@@ -9,8 +9,9 @@ struct FSlateBrush;
 /**
  * Lazily loads the thumbnails embedded in the source dump's .uasset files (read straight
  * from the package's thumbnail table on disk — the package is never loaded) and turns
- * them into Slate brushes for the search list. Rows are virtualized, so only visible
- * entries ever get loaded; results are cached, including "this package has no thumbnail".
+ * them into Slate brushes for the search list and the Browse grid. Rows/tiles are
+ * virtualized, so only visible entries ever get loaded; results are cached, including
+ * "this package has no thumbnail".
  *
  * NOTE: ThumbnailTools::LoadThumbnailsFromPackage is NOT usable here — it fatally
  * asserts on files outside mounted content roots. FPackageReader::GetThumbnails is the
@@ -36,6 +37,9 @@ private:
 
 	/** Key: source file path. Null value = known to have no thumbnail. */
 	TMap<FString, TSharedPtr<FSlateDynamicImageBrush>> Cache;
+
+	/** Cache keys in insertion order; the front is evicted first when the cache is full. */
+	TArray<FString> InsertOrder;
 
 	static constexpr int32 MaxCachedThumbnails = 2048;
 };

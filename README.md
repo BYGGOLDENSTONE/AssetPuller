@@ -31,8 +31,13 @@ needs — nothing more.
   differ are overwritten, the old files are backed up to
   `Saved/AssetPullerBackups/<timestamp>/`, loaded assets are refreshed in the
   editor, and maps are never touched.
-- **Thumbnails in the search list**, read straight from the library's package
-  files — no loading, no source project involved.
+- **Thumbnails in the search list and Browse grid**, read straight from the
+  library's package files — no loading, no source project involved.
+- **Visual Browse mode.** Browse the library by pack and category in a
+  virtualized thumbnail grid (smooth over 25k+ assets) instead of only
+  searching by name — no external asset index needed. Meshes are grouped
+  into a pack → category tree with counts; filter by Static/Skeletal and by
+  name, then import with the same dependency-resolving flow.
 - **Instant open on huge libraries.** The index is cached per project; the
   window opens with last session's index immediately while a fresh scan runs
   in the background and swaps in seconds later.
@@ -94,29 +99,39 @@ This is the **Content folder of the library project** on disk, e.g.
 Added new packs to the library? Press **Rescan** — the index is rebuilt from
 disk in seconds.
 
-## Example workflow: Synty Pass + Synty Dex
+### Browsing visually
+
+Don't know the exact asset name? Switch to the **Browse** tab and explore the
+library visually. Pick a pack — or a category within it — in the left tree,
+and its meshes appear as thumbnails on the right. Filter by **Static Meshes**
+/ **Skeletal**, or type in the filter box to narrow the current view by name.
+Select tiles (Ctrl/Shift click, or *Select All*) and click **Import
+Selected** — the same dependency-resolving import runs, so materials and
+textures come along automatically.
+
+![Asset Puller browse mode](Docs/browse-mode.png)
+
+Packs are derived from the library's folder structure (nested `Synty/` packs
+are flattened up, and folder-name variants like `Meshes`/`Models` are
+merged). Browse shows **meshes only** — static (`SM_`/`geo_`) and skeletal
+(`SK_`); other asset types are pulled automatically as dependencies. Maps,
+blueprints, and engine template content are hidden here — use *Search* to
+pull those by name.
+
+## Example workflow: Synty Pass
 
 This plugin pairs naturally with a [Synty Pass](https://syntystore.com/)
 subscription: install the POLYGON packs you want into a single "library"
 project once, and point Asset Puller's *Source Content Folder* at that
-project's Content directory. Your game projects stay lean — you pull
-individual assets by name instead of migrating whole packs.
+project's Content directory. Your game projects stay lean — you pull or
+browse individual assets instead of migrating whole packs.
 
-To find the right asset name without opening the library project, browse
-Synty's official asset index at **https://dex.syntystore.com/**. Search
-visually across every pack:
-
-![Synty Dex search](Docs/synty-dex-search.png)
-
-Click an asset and copy its exact name (e.g. `SM_Wep_Axe_03`) with the copy
-button next to the name:
-
-![Synty Dex copy asset name](Docs/synty-dex-copy-name.png)
-
-Paste that name into Asset Puller's search box, import, and the asset arrives
-with all of its materials and textures. (Ignore Dex's *Unity Path* field —
-in Unreal the asset name alone is enough, Asset Puller locates it in your
-library by name.)
+**Browse mode replaces the need for an external asset index.** Earlier
+versions relied on Synty's online [Dex](https://dex.syntystore.com/) to look
+asset names up before searching; the built-in **Browse** tab now shows every
+mesh with its thumbnail, grouped by pack and category, so you can find and
+import assets entirely inside the editor. Dex is still available online as an
+optional cross-reference, but it is no longer required.
 
 ## Command line
 

@@ -28,6 +28,9 @@ public:
 	const FString& GetSourceContentDir() const { return SourceContentDir; }
 	int32 Num() const { return Entries.Num(); }
 
+	/** All indexed entries, for browsing the whole library by pack/category (not a search). */
+	const TArray<TSharedPtr<FDumpAssetEntry>>& GetEntries() const { return Entries; }
+
 	/**
 	 * Ranked search. The query may contain several comma-separated terms (OR).
 	 * Ranking per term: exact name match, then prefix, then substring. Case-insensitive.

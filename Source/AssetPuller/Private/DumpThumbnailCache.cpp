@@ -11,14 +11,19 @@ TSharedPtr<FSlateDynamicImageBrush> FDumpThumbnailCache::GetThumbnail(const FDum
 		return *Cached;
 	}
 
-	if (Cache.Num() >= MaxCachedThumbnails)
+	// Evict oldest-first (FIFO) when full, one at a time, instead of flushing everything —
+	// a full flush would re-decode the whole visible grid on every overflow while scrolling.
+	// Tiles hold their own shared reference, so a brush still on screen survives eviction.
+	while (Cache.Num() >= MaxCachedThumbnails && InsertOrder.Num() > 0)
 	{
-		// Rows hold their own shared reference, so brushes still on screen survive this.
-		Reset();
+		const FString OldestKey = InsertOrder[0];
+		InsertOrder.RemoveAt(0);
+		Cache.Remove(OldestKey);
 	}
 
 	TSharedPtr<FSlateDynamicImageBrush> Brush = LoadThumbnail(Entry);
 	Cache.Add(Entry.SourceFile, Brush);
+	InsertOrder.Add(Entry.SourceFile);
 	return Brush;
 }
 
@@ -26,6 +31,7 @@ void FDumpThumbnailCache::Reset()
 {
 	// Brush destructors release the dynamic texture resources.
 	Cache.Reset();
+	InsertOrder.Reset();
 }
 
 TSharedPtr<FSlateDynamicImageBrush> FDumpThumbnailCache::LoadThumbnail(const FDumpAssetEntry& Entry) const
