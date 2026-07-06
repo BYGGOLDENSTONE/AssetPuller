@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.0",
+	"FriendlyName": "Asset Puller",
+	"Description": "Pull assets and their full dependency chains by name from an external asset dump project (e.g. a Synty library project) into this project, preserving folder paths so references stay intact.",
+	"Category": "Editor Tools",
+	"CreatedBy": "Golden Stone Games",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "AssetPuller",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}
