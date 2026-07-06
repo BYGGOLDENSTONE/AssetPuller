@@ -3,6 +3,7 @@
 #include "AssetRegistry/PackageReader.h"
 #include "HAL/FileManager.h"
 #include "Misc/Paths.h"
+#include "Misc/SecureHash.h"
 #include "UObject/ObjectResource.h"
 
 namespace AssetPullerPrivate
@@ -130,7 +131,17 @@ FPullPlan FAssetDependencyResolver::BuildPlan(const TArray<TSharedPtr<FDumpAsset
 		Item.FileSize = IFileManager::Get().FileSize(*Item.SourceFile);
 		if (!ExistingTargetFile.IsEmpty())
 		{
-			Item.Status = EPullItemStatus::SkipExists;
+			// Update mode: overwrite only when the content actually differs. Maps are
+			// exempt — overwriting a map the user may have edited is never worth it.
+			if (Params.bUpdateExisting && !Item.bIsMap && !bTargetIsMap
+				&& !FilesHaveSameContent(Item.SourceFile, ExistingTargetFile))
+			{
+				Item.Status = EPullItemStatus::UpdateExisting;
+			}
+			else
+			{
+				Item.Status = EPullItemStatus::SkipExists;
+			}
 			Item.TargetFile = ExistingTargetFile;
 		}
 		else
@@ -228,7 +239,8 @@ FPullPlan FAssetDependencyResolver::BuildPlan(const TArray<TSharedPtr<FDumpAsset
 		}
 		Plan.Items.RemoveAll([&MapsBeingCopied](const FPullItem& Item)
 		{
-			if (Item.Status != EPullItemStatus::CopyNew)
+			// Covers UpdateExisting too: maps are never updated, so their actors must not be either.
+			if (Item.Status != EPullItemStatus::CopyNew && Item.Status != EPullItemStatus::UpdateExisting)
 			{
 				return false;
 			}
@@ -306,6 +318,18 @@ bool FAssetDependencyResolver::ReadPackageRefs(const FString& PackageFile, const
 		OutSoftDeps = MoveTemp(SoftRefs);
 	}
 	return true;
+}
+
+bool FAssetDependencyResolver::FilesHaveSameContent(const FString& FileA, const FString& FileB)
+{
+	IFileManager& FM = IFileManager::Get();
+	if (FM.FileSize(*FileA) != FM.FileSize(*FileB))
+	{
+		return false;
+	}
+	const FMD5Hash HashA = FMD5Hash::HashFile(*FileA);
+	const FMD5Hash HashB = FMD5Hash::HashFile(*FileB);
+	return HashA.IsValid() && HashB.IsValid() && HashA == HashB;
 }
 
 FString FAssetDependencyResolver::PackageNameToExistingFile(const FString& ContentDir, const FString& PackageName, bool& bOutIsMap)

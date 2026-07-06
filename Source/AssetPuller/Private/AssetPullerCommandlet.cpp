@@ -34,6 +34,7 @@ int32 UAssetPullerCommandlet::Main(const FString& Params)
 	ResolveParams.TargetContentDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 	FPaths::NormalizeDirectoryName(ResolveParams.TargetContentDir);
 	ResolveParams.bIncludeSoftReferences = !Switches.Contains(TEXT("NoSoft"));
+	ResolveParams.bUpdateExisting = Switches.Contains(TEXT("Update"));
 
 	if (FPaths::IsUnderDirectory(ResolveParams.SourceContentDir, ResolveParams.TargetContentDir) ||
 		FPaths::IsUnderDirectory(ResolveParams.TargetContentDir, ResolveParams.SourceContentDir))
@@ -84,12 +85,13 @@ int32 UAssetPullerCommandlet::Main(const FString& Params)
 
 	FPullPlan Plan = FAssetDependencyResolver::BuildPlan(Requested, ResolveParams, [](const FString&) {});
 
-	UE_LOG(LogAssetPuller, Display, TEXT("Plan: %d to copy (%lld bytes), %d already exist, %d missing in source, %d map(s)"),
-		Plan.NumToCopy, Plan.TotalCopyBytes, Plan.NumExisting, Plan.NumMissing, Plan.NumMaps);
+	UE_LOG(LogAssetPuller, Display, TEXT("Plan: %d to copy (%lld bytes), %d to update (%lld bytes), %d already exist, %d missing in source, %d map(s)"),
+		Plan.NumToCopy, Plan.TotalCopyBytes, Plan.NumToUpdate, Plan.TotalUpdateBytes, Plan.NumExisting, Plan.NumMissing, Plan.NumMaps);
 	for (const FPullItem& Item : Plan.Items)
 	{
 		const TCHAR* StatusStr =
 			Item.Status == EPullItemStatus::CopyNew ? TEXT("COPY") :
+			Item.Status == EPullItemStatus::UpdateExisting ? TEXT("UPDATE") :
 			Item.Status == EPullItemStatus::SkipExists ? TEXT("SKIP") : TEXT("MISSING");
 		UE_LOG(LogAssetPuller, Display, TEXT("  [%s]%s %s"), StatusStr, Item.bSoftOnly ? TEXT(" (soft)") : TEXT(""), *Item.PackageName);
 	}
@@ -101,11 +103,17 @@ int32 UAssetPullerCommandlet::Main(const FString& Params)
 	}
 
 	const FPullReport Report = FAssetPullExecutor::Execute(Plan, /*bShowProgressDialog*/false);
+	if (!Report.BackupDir.IsEmpty())
+	{
+		UE_LOG(LogAssetPuller, Display, TEXT("Overwritten files backed up to: %s"), *Report.BackupDir);
+	}
 
 	int32 LoadFailures = 0;
 	if (Switches.Contains(TEXT("VerifyLoad")))
 	{
-		for (const FString& PackageName : Report.CopiedPackageNames)
+		TArray<FString> PackagesToVerify = Report.CopiedPackageNames;
+		PackagesToVerify.Append(Report.UpdatedPackageNames);
+		for (const FString& PackageName : PackagesToVerify)
 		{
 			UPackage* Loaded = LoadPackage(nullptr, *PackageName, LOAD_None);
 			if (!Loaded)
@@ -114,8 +122,8 @@ int32 UAssetPullerCommandlet::Main(const FString& Params)
 				UE_LOG(LogAssetPuller, Error, TEXT("VerifyLoad FAILED: %s"), *PackageName);
 			}
 		}
-		UE_LOG(LogAssetPuller, Display, TEXT("VerifyLoad: %d/%d copied packages loaded successfully"),
-			Report.CopiedPackageNames.Num() - LoadFailures, Report.CopiedPackageNames.Num());
+		UE_LOG(LogAssetPuller, Display, TEXT("VerifyLoad: %d/%d copied/updated packages loaded successfully"),
+			PackagesToVerify.Num() - LoadFailures, PackagesToVerify.Num());
 	}
 
 	return (Report.NumFailed == 0 && LoadFailures == 0 && !bAnyNotFound) ? 0 : 1;

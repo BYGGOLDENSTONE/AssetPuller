@@ -29,6 +29,8 @@ enum class EPullItemStatus : uint8
 {
 	/** Not present in the target project: will be copied. */
 	CopyNew,
+	/** Update mode only: exists in the target but the source content differs — will be overwritten (old file backed up). */
+	UpdateExisting,
 	/** Already exists at the same path in the target project: skipped, never overwritten. */
 	SkipExists,
 	/** Referenced by something in the chain but its file is missing in the source dump. */
@@ -58,15 +60,17 @@ struct FPullPlan
 	TArray<FString> ExternalRefs;
 
 	int32 NumToCopy = 0;
+	int32 NumToUpdate = 0;
 	int32 NumExisting = 0;
 	int32 NumMissing = 0;
 	int32 NumMaps = 0;
-	int64 TotalCopyBytes = 0;
+	int64 TotalCopyBytes = 0;     // new copies only
+	int64 TotalUpdateBytes = 0;   // overwrites only
 
 	void RecountTotals()
 	{
-		NumToCopy = NumExisting = NumMissing = NumMaps = 0;
-		TotalCopyBytes = 0;
+		NumToCopy = NumToUpdate = NumExisting = NumMissing = NumMaps = 0;
+		TotalCopyBytes = TotalUpdateBytes = 0;
 		for (const FPullItem& Item : Items)
 		{
 			switch (Item.Status)
@@ -75,6 +79,10 @@ struct FPullPlan
 				NumToCopy++;
 				TotalCopyBytes += Item.FileSize;
 				if (Item.bIsMap) { NumMaps++; }
+				break;
+			case EPullItemStatus::UpdateExisting:
+				NumToUpdate++;
+				TotalUpdateBytes += Item.FileSize;
 				break;
 			case EPullItemStatus::SkipExists:      NumExisting++; break;
 			case EPullItemStatus::MissingInSource: NumMissing++;  break;
@@ -87,10 +95,14 @@ struct FPullPlan
 struct FPullReport
 {
 	int32 NumCopied = 0;
+	int32 NumUpdated = 0;
 	int32 NumSkipped = 0;
 	int32 NumFailed = 0;
 	bool bCancelled = false;
 	TArray<FString> FailedFiles;
-	TArray<FString> CopiedTargetFiles;   // absolute target paths, for the registry rescan
+	TArray<FString> CopiedTargetFiles;    // absolute target paths, for the registry rescan
 	TArray<FString> CopiedPackageNames;
+	TArray<FString> UpdatedPackageNames;  // overwritten packages — may need an in-editor reload
+	TArray<FString> SkippedDirtyPackages; // updates refused because the asset has UNSAVED editor changes
+	FString BackupDir;                    // where overwritten files were backed up (update mode)
 };

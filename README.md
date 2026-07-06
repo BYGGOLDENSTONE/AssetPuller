@@ -26,6 +26,16 @@ needs — nothing more.
   and reported. Interrupted copies can't leave corrupt files behind (temp file
   + atomic rename). Maps that already exist in the target never get actors
   injected into them.
+- **Opt-in update mode.** Tick *Update existing* to sync assets whose content
+  changed in the library (e.g. after a pack update): only files that actually
+  differ are overwritten, the old files are backed up to
+  `Saved/AssetPullerBackups/<timestamp>/`, loaded assets are refreshed in the
+  editor, and maps are never touched.
+- **Thumbnails in the search list**, read straight from the library's package
+  files — no loading, no source project involved.
+- **Instant open on huge libraries.** The index is cached per project; the
+  window opens with last session's index immediately while a fresh scan runs
+  in the background and swaps in seconds later.
 - **Preview before copy.** A confirmation dialog lists what will be copied
   (with total size), what will be skipped, and anything missing in the source.
 - **Live search** over the whole library (100k+ assets), comma-separated
@@ -112,11 +122,13 @@ library by name.)
 
 ```
 UnrealEditor-Cmd.exe <project.uproject> -run=AssetPuller -Names=SM_A,SM_B
-    [-Source=<library Content folder>] [-NoSoft] [-DryRun] [-VerifyLoad]
+    [-Source=<library Content folder>] [-NoSoft] [-Update] [-DryRun] [-VerifyLoad]
 ```
 
 - `-Source` overrides the folder from Project Settings
 - `-NoSoft` ignores soft references
+- `-Update` overwrites existing assets whose content differs in the library
+  (old files are backed up to `Saved/AssetPullerBackups`; maps are never updated)
 - `-DryRun` prints the resolved plan without copying anything
 - `-VerifyLoad` fully loads every copied package afterwards to prove the
   references are intact (useful in automated tests)
@@ -143,7 +155,9 @@ Exit code is non-zero when an asset name isn't found, a copy fails, or
 ## Safety rules
 
 - Existing target files are never overwritten (checked under both `.uasset`
-  and `.umap` extensions to avoid duplicate package names).
+  and `.umap` extensions to avoid duplicate package names). The only exception
+  is the explicit *Update existing* mode, which backs up every file it
+  replaces and shows exactly what will be overwritten before doing it.
 - External actor/object packages are only copied when their owning map is
   copied in the same operation.
 - The source folder must not overlap the target project's own Content folder.

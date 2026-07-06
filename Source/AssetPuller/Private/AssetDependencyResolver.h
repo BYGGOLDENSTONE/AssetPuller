@@ -16,6 +16,13 @@ public:
 		FString SourceContentDir;   // absolute, normalized, no trailing slash
 		FString TargetContentDir;   // absolute, normalized (the current project's Content dir)
 		bool bIncludeSoftReferences = true;
+
+		/**
+		 * Update mode: existing target files whose CONTENT differs from the source get
+		 * UpdateExisting status (overwrite with backup). Identical files still skip.
+		 * Maps are never updated regardless of this flag.
+		 */
+		bool bUpdateExisting = false;
 	};
 
 	/**
@@ -33,6 +40,9 @@ private:
 
 	/** Maps "/Game/Rel/Path" to an existing file under ContentDir (tries .uasset then .umap). Empty if missing. */
 	static FString PackageNameToExistingFile(const FString& ContentDir, const FString& PackageName, bool& bOutIsMap);
+
+	/** Size compare first, MD5 only when sizes match. */
+	static bool FilesHaveSameContent(const FString& FileA, const FString& FileB);
 
 	/** Collects all external actor/object packages that belong to a map package (One File Per Actor support). */
 	static void CollectMapExternalPackages(const FString& SourceContentDir, const FString& MapPackageName,

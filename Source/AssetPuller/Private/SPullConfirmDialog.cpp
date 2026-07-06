@@ -18,6 +18,7 @@ namespace
 		switch (Item.Status)
 		{
 		case EPullItemStatus::CopyNew:         return LOCTEXT("StatusCopy", "Copy");
+		case EPullItemStatus::UpdateExisting:  return LOCTEXT("StatusUpdate", "Overwrite");
 		case EPullItemStatus::SkipExists:      return LOCTEXT("StatusSkip", "Skip (exists)");
 		case EPullItemStatus::MissingInSource: return LOCTEXT("StatusMissing", "MISSING in source");
 		}
@@ -29,6 +30,7 @@ namespace
 		switch (Item.Status)
 		{
 		case EPullItemStatus::CopyNew:         return FStyleColors::AccentGreen;
+		case EPullItemStatus::UpdateExisting:  return FStyleColors::Warning;
 		case EPullItemStatus::SkipExists:      return FSlateColor::UseSubduedForeground();
 		case EPullItemStatus::MissingInSource: return FStyleColors::Error;
 		}
@@ -63,6 +65,17 @@ void SPullConfirmDialog::Construct(const FArguments& InArgs)
 			FText::AsNumber(Plan->NumToCopy), FText::FromString(FormatSize(Plan->TotalCopyBytes))))
 		.ColorAndOpacity(FStyleColors::AccentGreen)
 	];
+	if (Plan->NumToUpdate > 0)
+	{
+		Summary->AddSlot().AutoHeight().Padding(0, 0, 0, 6)
+		[
+			SNew(STextBlock)
+			.Text(FText::Format(LOCTEXT("SummaryUpdate", "{0} existing asset(s) will be OVERWRITTEN with the source version ({1}) — the old files are backed up to Saved/AssetPullerBackups"),
+				FText::AsNumber(Plan->NumToUpdate), FText::FromString(FormatSize(Plan->TotalUpdateBytes))))
+			.ColorAndOpacity(FStyleColors::Warning)
+			.AutoWrapText(true)
+		];
+	}
 	if (Plan->NumExisting > 0)
 	{
 		Summary->AddSlot().AutoHeight().Padding(0, 0, 0, 6)
@@ -144,8 +157,11 @@ void SPullConfirmDialog::Construct(const FArguments& InArgs)
 				[
 					SNew(SButton)
 					.ButtonStyle(FAppStyle::Get(), "PrimaryButton")
-					.IsEnabled(Plan->NumToCopy > 0)
-					.Text(FText::Format(LOCTEXT("ImportButton", "Import {0} Asset(s)"), FText::AsNumber(Plan->NumToCopy)))
+					.IsEnabled(Plan->NumToCopy + Plan->NumToUpdate > 0)
+					.Text(Plan->NumToUpdate > 0
+						? FText::Format(LOCTEXT("ImportUpdateButton", "Import {0}, Overwrite {1}"),
+							FText::AsNumber(Plan->NumToCopy), FText::AsNumber(Plan->NumToUpdate))
+						: FText::Format(LOCTEXT("ImportButton", "Import {0} Asset(s)"), FText::AsNumber(Plan->NumToCopy)))
 					.OnClicked(this, &SPullConfirmDialog::OnImportClicked)
 				]
 				+ SHorizontalBox::Slot().AutoWidth()
@@ -186,7 +202,9 @@ TSharedRef<ITableRow> SPullConfirmDialog::OnGenerateRow(TSharedPtr<FPullItem> It
 		+ SHorizontalBox::Slot().AutoWidth().Padding(4, 2)
 		[
 			SNew(STextBlock)
-			.Text(FText::FromString(Item->Status == EPullItemStatus::CopyNew ? FormatSize(Item->FileSize) : FString()))
+			.Text(FText::FromString(
+				(Item->Status == EPullItemStatus::CopyNew || Item->Status == EPullItemStatus::UpdateExisting)
+					? FormatSize(Item->FileSize) : FString()))
 			.ColorAndOpacity(FSlateColor::UseSubduedForeground())
 		]
 	];
